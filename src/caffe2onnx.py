@@ -4,10 +4,26 @@ from onnx import helper
 import copy
 import numpy as np
 from src.op_layer_info import *
+
+from google.protobuf import text_format
+from proto import caffe_upsample_pb2
+
 class Caffe2Onnx():
-    def __init__(self,net,model,onnxname):
+    def __init__(self,net_path,model_path):
+        # read prototxt
+        net = caffe_upsample_pb2.NetParameter()
+        text_format.Merge(open(net_path).read(), net)
+
+        # read caffemodel
+        model = caffe_upsample_pb2.NetParameter()
+        f = open(model_path, 'rb')
+        model.ParseFromString(f.read())
+        f.close()
+        print("---- caffe模型加载完成")
+
         #初始化一个c2oGraph对象
-        self.onnxmodel = c2oGraph(onnxname)
+        self.onnxmodel = c2oGraph(model.name)
+
         #网络和参数
         self.__NetLayer = self.__getNetLayer(net)
         self._ModelLayer = self.__getModelLayer(model)
@@ -89,6 +105,7 @@ class Caffe2Onnx():
                 Params = copy.deepcopy(model_layer.blobs)
                 ParamShape = [p.shape.dim for p in Params]
                 ParamData = [p.data for p in Params]
+                # todo ? 丢弃最后一个维度？
                 if layer.type == "BatchNorm":
                     ParamShape = ParamShape[0:len(ParamShape) - 1]
                     ParamData = ParamData[0:len(ParamData) - 1]
@@ -410,6 +427,6 @@ class Caffe2Onnx():
             value_info=self.onnxmodel.hidden_out_tvi
         )
         model_def = helper.make_model(graph_def, producer_name='htshinichi')
-        print("2.onnx模型转换完成")
+        print("---- onnx模型转换完成")
         return model_def
 
