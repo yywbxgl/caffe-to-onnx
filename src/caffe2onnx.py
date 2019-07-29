@@ -4,9 +4,11 @@ from onnx import helper
 import copy
 import numpy as np
 from src.op_layer_info import *
+import onnx
 
 from google.protobuf import text_format
 from proto import caffe_upsample_pb2
+import cv2
 
 class Caffe2Onnx():
     def __init__(self,net_path,model_path):
@@ -19,7 +21,7 @@ class Caffe2Onnx():
         f = open(model_path, 'rb')
         model.ParseFromString(f.read())
         f.close()
-        print("---- caffe模型加载完成")
+        print("caffe模型加载完成")
 
         #初始化一个c2oGraph对象
         self.onnxmodel = c2oGraph(model.name)
@@ -121,6 +123,8 @@ class Caffe2Onnx():
                 ParamName[i] = layer.name+ParamName[i]
                 p_tvi = helper.make_tensor_value_info(ParamName[i], ParamType[i], ParamShape[i])
                 p_t = helper.make_tensor(ParamName[i],ParamType[i],ParamShape[i],ParamData[i])
+                # print("------ ParamData[i] type=", type(ParamData[i]))
+                # print("------ ParamData[i] =", (ParamData[i]))
                 self.onnxmodel.addInputsTVI(p_tvi)
                 self.onnxmodel.addInitTensor(p_t)
                 print("添加参数" + ParamName[i] + "输入信息和tensor数据")
@@ -418,6 +422,9 @@ class Caffe2Onnx():
     #创建模型
     def createOnnxModel(self):
         node_def = [Node.node for Node in self.NodeList]
+        # -----------------------------#
+        # self.add_input_data()
+        # -----------------------------#
         graph_def = helper.make_graph(
             node_def,
             self.onnxmodel.name,
@@ -426,7 +433,31 @@ class Caffe2Onnx():
             self.onnxmodel.init_t,
             value_info=self.onnxmodel.hidden_out_tvi
         )
-        model_def = helper.make_model(graph_def, producer_name='htshinichi')
-        print("---- onnx模型转换完成")
+        model_def = helper.make_model(graph_def, producer_name='sun')
+        print("onnx模型转换完成")
         return model_def
+
+
+    def add_input_data(self):
+        # 读取图片数据
+        # img = Image.open("cat.jpg")
+        img = cv2.imread("/home/sunqiliang/code/python/onnx_test/caffe-onnx/test/conv/conv.png")
+        # cv2默认为 BGR顺序，而其他软件一般使用RGB，所以需要转换
+        # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB) # cv2默认为bgr顺序
+        x = np.array(img, dtype=np.float32)
+        x = np.reshape(x, (1,5,5,3))
+        # 矩阵转置换，img读取后的格式为W*H*C 转为model输入格式 C*W*H
+        x = np.transpose(x,(0,3,1,2))
+        # print(x.shape)
+        # print(x)
+
+        x = np.reshape(x, (1,-1))
+        x = x.tolist()
+        x = x[0]
+        print(x)
+
+        data = helper.make_tensor("data_input", TensorProto.FLOAT, [1,3,5,5], x)
+        self.onnxmodel.addInitTensor(data)
+
+        return x
 

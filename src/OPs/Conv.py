@@ -24,7 +24,7 @@ def getConvAttri(layer):
 
     # 超参数字典
     dict = {  # "auto_pad":"NOTSET",
-        "dilations": [1, 1, 1],
+        "dilations": [1, 1],
         "group": group,
         "kernel_shape": kernel_shape,
         "pads": pads,
