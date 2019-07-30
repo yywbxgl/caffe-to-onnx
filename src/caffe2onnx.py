@@ -8,7 +8,7 @@ import onnx
 
 from google.protobuf import text_format
 from proto import caffe_upsample_pb2
-import cv2
+# import cv2
 
 class Caffe2Onnx():
     def __init__(self,net_path,model_path):
@@ -21,7 +21,7 @@ class Caffe2Onnx():
         f = open(model_path, 'rb')
         model.ParseFromString(f.read())
         f.close()
-        print("caffe模型加载完成")
+        print("1. caffe load success")
 
         #初始化一个c2oGraph对象
         self.onnxmodel = c2oGraph(model.name)
@@ -75,7 +75,7 @@ class Caffe2Onnx():
                     self.model_input_name.append(lay.name+"_input")
                     self.model_input_shape.append(lay.input_param.shape[0].dim)
                     self.onnxmodel.addInputsTVI(in_tvi)
-                    print("添加模型输入信息")
+                    print("add input info")
                 else:
                     layer_list.append(lay)
             return layer_list
@@ -86,7 +86,7 @@ class Caffe2Onnx():
             self.model_input_name.append("input")
             self.model_input_shape.append(net.input_dim)
             self.onnxmodel.addInputsTVI(in_tvi)
-            print("添加模型输入信息")
+            print("add input info")
             return self.__NetLayer
 
         #以上情况都不是,则该caffe模型没有输入,存在问题
@@ -127,7 +127,7 @@ class Caffe2Onnx():
                 # print("------ ParamData[i] =", (ParamData[i]))
                 self.onnxmodel.addInputsTVI(p_tvi)
                 self.onnxmodel.addInitTensor(p_t)
-                print("添加参数" + ParamName[i] + "输入信息和tensor数据")
+                print("add param " + ParamName[i] + "add inout and tensor")
         return ParamName
 
     #手动将参数添加到输入信息中,并生成tensor存储数据
@@ -139,7 +139,7 @@ class Caffe2Onnx():
             p_t = helper.make_tensor(Param_Name[i], ParamType[i], ParamShape[i], ParamData[i])
             self.onnxmodel.addInputsTVI(p_tvi)
             self.onnxmodel.addInitTensor(p_t)
-            print("添加参数"+Param_Name[i]+"输入信息和tensor数据")
+            print("add param "+Param_Name[i]+"add inout and tensor")
         return Param_Name
 
 
@@ -417,7 +417,7 @@ class Caffe2Onnx():
                 for k in range(len(innernode.outputs_shape)):
                     hid_out_tvi = helper.make_tensor_value_info(innernode.outputs_name[k], TensorProto.FLOAT,innernode.outputs_shape[k])
                     self.onnxmodel.addValueInfoTVI(hid_out_tvi)
-        print("添加模型输出信息和模型中间输出信息")
+        print("2. add input and hidden info success.")
 
     #创建模型
     def createOnnxModel(self):
@@ -434,30 +434,30 @@ class Caffe2Onnx():
             value_info=self.onnxmodel.hidden_out_tvi
         )
         model_def = helper.make_model(graph_def, producer_name='sun')
-        print("onnx模型转换完成")
+        print("3. convert to onnx model success. ")
         return model_def
 
 
-    def add_input_data(self):
-        # 读取图片数据
-        # img = Image.open("cat.jpg")
-        img = cv2.imread("/home/sunqiliang/code/python/onnx_test/caffe-onnx/test/conv/conv.png")
-        # cv2默认为 BGR顺序，而其他软件一般使用RGB，所以需要转换
-        # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB) # cv2默认为bgr顺序
-        x = np.array(img, dtype=np.float32)
-        x = np.reshape(x, (1,5,5,3))
-        # 矩阵转置换，img读取后的格式为W*H*C 转为model输入格式 C*W*H
-        x = np.transpose(x,(0,3,1,2))
-        # print(x.shape)
-        # print(x)
+    # def add_input_data(self):
+    #     # 读取图片数据
+    #     # img = Image.open("cat.jpg")
+    #     img = cv2.imread("/home/sunqiliang/code/python/onnx_test/caffe-onnx/test/conv/conv.png")
+    #     # cv2默认为 BGR顺序，而其他软件一般使用RGB，所以需要转换
+    #     # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB) # cv2默认为bgr顺序
+    #     x = np.array(img, dtype=np.float32)
+    #     x = np.reshape(x, (1,5,5,3))
+    #     # 矩阵转置换，img读取后的格式为W*H*C 转为model输入格式 C*W*H
+    #     x = np.transpose(x,(0,3,1,2))
+    #     # print(x.shape)
+    #     # print(x)
 
-        x = np.reshape(x, (1,-1))
-        x = x.tolist()
-        x = x[0]
-        print(x)
+    #     x = np.reshape(x, (1,-1))
+    #     x = x.tolist()
+    #     x = x[0]
+    #     print(x)
 
-        data = helper.make_tensor("data_input", TensorProto.FLOAT, [1,3,5,5], x)
-        self.onnxmodel.addInitTensor(data)
+    #     data = helper.make_tensor("data_input", TensorProto.FLOAT, [1,3,5,5], x)
+    #     self.onnxmodel.addInitTensor(data)
 
-        return x
+    #     return x
 

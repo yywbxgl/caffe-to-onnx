@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 import argparse
 from src.caffe2onnx import *
 import onnx
