@@ -6,8 +6,9 @@ import onnx
 import onnxruntime.backend as backend
 import numpy as np
 import sys
-import cv2
+#import cv2
 from PIL import Image
+from importlib import reload
 
 # 保存onnx model
 def saveonnxmodel(onnxmodel,onnx_save_path):
